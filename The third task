@@ -1,0 +1,186 @@
+/**
+LCD1602ÏÔÊ¾ 12345
+**/
+#include <reg52.h>
+#include <string.h>
+typedef unsigned char uchar;
+typedef unsigned int uint;
+
+sbit RS = P3^5;
+sbit RW = P3^6;
+sbit EN = P3^4;
+sbit Feng = P2^3;
+//ÅÐ¶ÏÒº¾§Ã¦£¬Èç¹ûÃ¦ÔòµÈ´ý
+
+void timer0Int(){
+	TR0 = 1;
+	TMOD = 0x01;
+	TH0 = 0x4b;
+	TL0 = 0xfd;
+}//(50ms)
+
+void delay(){
+	timer0Int();
+	while(!TF0){
+	}
+	TR0 = 0;//¹Ø±Õ¶¨Ê±Æ÷
+	TF0 = 0;//Òç³öÎ»ÖØÖÃ
+}
+
+void Read_Busy()
+{
+	uchar busy;
+	P0 = 0xff;
+	RS = 0;
+	RW = 1;
+	do
+	{
+		EN = 1;
+		busy = P0;
+		EN = 0;
+	}while(busy & 0x80);
+}
+//Ð´LCD1602ÃüÁîÒ»¸ö×Ö½Ú
+void Write_Cmd(uchar cmd)
+{
+	Read_Busy();//ÅÐ¶ÏÃ¦
+	RS = 0;
+	RW = 0;
+	P0 = cmd;
+	EN = 1;
+	EN = 0;
+}
+//Ð´Ò»¸ö×Ö½ÚÊý¾Ý
+void Write_Dat(uchar dat)
+{
+	Read_Busy();
+	RS = 1;
+	RW = 0;
+	P0 = dat;
+	EN = 1;
+	EN = 0;
+}
+uint z = 0;
+char* out = "input password";
+void Write_input_password(){
+	Write_Cmd(0x01);
+	Write_Cmd(0x06);//µØÖ·Ö¸ÕëÒÆÎ»ÃüÁî
+	Write_Cmd(0x80 | 0x00);//ÏÔÊ¾µØÖ·
+
+	
+	for(; z < strlen(out); z++){
+		Write_Dat(out[z]);
+	}
+	
+	//Write_Da	t('i');
+//	Write_Dat('n');
+//	Write_Dat('p');
+//	Write_Dat('u');
+//	Write_Dat('t');
+//	Write_Dat(' ');
+//	Write_Dat('p');
+//	Write_Dat('a');
+//	Write_Dat('s');
+//	Write_Dat('s');
+//	Write_Dat('w');
+//	Write_Dat('o');
+//	Write_Dat('r');
+//	Write_Dat('d');
+}
+
+void Write_True(){
+	Write_Cmd(0x01);
+	Write_Cmd(0x06);
+	Write_Cmd(0x80 | 0x00);
+	Write_Dat('T');
+	Write_Dat('r');
+	Write_Dat('u');
+	Write_Dat('e');
+}
+
+void Write_False(){
+	Write_Cmd(0x01);
+	Write_Cmd(0x06);
+	Write_Cmd(0x80 | 0x00);
+	Write_Dat('F');
+	Write_Dat('a');
+	Write_Dat('l');
+	Write_Dat('s');
+	Write_Dat('e');
+}	
+
+void del(){
+	Write_Cmd(0x04);
+	Write_Dat(' ');
+	Write_Cmd(0x06);
+}	
+
+uint a=10, i=0, number=0, j=0, k=0, l=0;
+char date[]={'0','1','2','3','4','5','6','7','8','9'};
+char answer[5]= "1114";
+void main()
+{
+	char temp[5]="1111";
+	Write_Cmd(0x38);//ÉèÖÃ16*2ÏÔÊ¾
+	Write_Cmd(0x0f);//¿ªÏÔÊ¾ ÏÔÊ¾¹â±ê£¬¹â±êÉÁË¸
+	Write_Cmd(0x01);//ÇåÆÁ
+	tou:///////////////////////gotoº¯Êýµã
+	Write_Cmd(0x06);//µØÖ·Ö¸ÕëÒÆÎ»ÃüÁî
+	Write_Cmd(0x80 | 0x00);//ÏÔÊ¾µØÖ·
+	Write_input_password();
+	Write_Cmd(0x80 | 0x40);
+	while(1){
+		P3=0xf0;
+		if(P3!=0xf0){
+			delay();
+			if(P3!=0xf0){
+				switch(P3){
+					case 0xe0 : a = 0;break;
+					case 0xd0 : a = 1;break;
+					case 0xb0 : a = 2;break;
+					case 0x70 : a = 3;break;}
+				P3=0x0f;
+				switch(P3){
+					case 0x0e : a = a;break;
+					case 0x0d : a = a+4;break;
+					case 0x0b : a = a+8;break;
+					case 0x07 : a = a+12;break;}
+				while(P3!=0x0f);
+					if(number<4){
+						if(a<=9){
+							Write_Dat(date[a]);
+							temp[number]=date[a];
+							//Write_Dat(temp[number]);
+							number++;
+						}
+						if(a==10){
+							del();
+							number--;
+						}
+					}	
+			}	
+		}
+		if(number==4){
+			number=0;
+			for(i=10;i>0;i--){
+					delay();
+			}	
+			
+			if(strcmp(temp,answer)==0){
+				Write_True();
+				//Feng=0;
+				for(i=10;i>0;i--){
+					delay();
+				}	
+				Feng=1;
+			}
+			else{
+				Write_False();
+				for(i=20;i>0;i--){
+					delay();
+				}	
+				goto tou;
+			}	
+		}	
+	}
+}
